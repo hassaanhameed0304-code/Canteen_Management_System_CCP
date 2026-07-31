@@ -1,0 +1,114 @@
+#include <iostream>
+#include <string>
+using namespace std;
+
+class Person {
+protected:
+    string name, id, password;
+public:
+    Person(string n, string i, string p) : name(n), id(i), password(p) {}
+    virtual double applyDiscount(double subtotal) = 0;
+    virtual string getRole() = 0;
+    string getName() { return name; }
+};
+
+class DiscountStrategy {
+public:
+    virtual double getDiscount(Person* person, double subtotal) = 0;
+    virtual ~DiscountStrategy() {}
+};
+
+class NoDiscount : public DiscountStrategy {
+public:
+    double getDiscount(Person* person, double subtotal) override {
+        return 0.0;
+    }
+};
+
+class StaffDiscount : public DiscountStrategy {
+public:
+    double getDiscount(Person* person, double subtotal) override {
+        if (person->getRole() == "Staff" && subtotal > 200) {
+            return subtotal * 0.05;
+        }
+        return 0.0;
+    }
+};
+
+class Student : public Person {
+public:
+    Student(string n, string i, string p) : Person(n, i, p) {}
+    double applyDiscount(double subtotal) override {
+        return subtotal;
+    }
+    string getRole() override { return "Student"; }
+};
+
+class Staff : public Person {
+public:
+    Staff(string n, string i, string p) : Person(n, i, p) {}
+    double applyDiscount(double subtotal) override {
+        if (subtotal > 200)
+            return subtotal - (subtotal * 0.05);
+        return subtotal;
+    }
+    string getRole() override { return "Staff"; }
+};
+
+class Bill {
+    Person* person;
+    double subtotal;
+    DiscountStrategy* strategy;
+public:
+    Bill(Person* p, double s, DiscountStrategy* ds)
+        : person(p), subtotal(s), strategy(ds) {}
+
+    double calculateBill() {
+        double discount = strategy->getDiscount(person, subtotal);
+        return subtotal - discount;
+    }
+
+    void printBill() {
+        double discount = strategy->getDiscount(person, subtotal);
+        double finalAmt = subtotal - discount;
+
+        cout << "================================" << endl;
+        cout << "  RECEIPT" << endl;
+        cout << "================================" << endl;
+        cout << "Customer : " << person->getName() << endl;
+        cout << "Role     : " << person->getRole() << endl;
+        cout << "Subtotal : Rs. " << subtotal << endl;
+
+        if (discount > 0)
+            cout << "Discount : Rs. " << discount << " (5% Staff)" << endl;
+        else
+            cout << "Discount : None" << endl;
+
+        cout << "Total    : Rs. " << finalAmt << endl;
+        cout << "================================" << endl;
+    }
+};
+
+int main() {
+
+    Student s("Ali",    "S101", "pass1");
+    Staff   st("Hasan",  "T202", "pass2");
+    Staff   st2("Hassaan","", "pass3");
+
+    StaffDiscount staffDisc;
+    NoDiscount    noDisc;
+
+    cout << "\n[Student, Rs.500]" << endl;
+    Bill b1(&s, 500, &staffDisc);
+    b1.printBill();
+
+    cout << "\n[Staff, Rs.150 - below threshold]" << endl;
+    Bill b2(&st, 150, &staffDisc);
+    b2.printBill();
+
+    cout << "\n[Staff, Rs.500 - discount applies]" << endl;
+    Bill b3(&st2, 500, &staffDisc);
+    b3.printBill();
+
+    return 0;
+}
